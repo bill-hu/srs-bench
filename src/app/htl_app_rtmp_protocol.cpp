@@ -23,6 +23,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <htl_stdinc.hpp>
 #include <htl_app_rtmp_protocol.hpp>
+#include <stdarg.h>
 
 //#include "srs_librtmp.h"
 
@@ -1005,16 +1006,16 @@ extern ISrsLog* _srs_log;
 
 // user must implements the LogContext and define a global instance.
 extern ISrsThreadContext* _srs_context;
-
+/*
 // donot print method
-#if 1
+#if 0
     #define srs_verbose(msg, ...) _srs_log->verbose(NULL, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_info(msg, ...)    _srs_log->info(NULL, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_trace(msg, ...)   _srs_log->trace(NULL, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_warn(msg, ...)    _srs_log->warn(NULL, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_error(msg, ...)   _srs_log->error(NULL, _srs_context->get_id(), msg, ##__VA_ARGS__)
 // use __FUNCTION__ to print c method
-#elif 0
+#elif 1
     #define srs_verbose(msg, ...) _srs_log->verbose(__FUNCTION__, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_info(msg, ...)    _srs_log->info(__FUNCTION__, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_trace(msg, ...)   _srs_log->trace(__FUNCTION__, _srs_context->get_id(), msg, ##__VA_ARGS__)
@@ -1028,6 +1029,12 @@ extern ISrsThreadContext* _srs_context;
     #define srs_warn(msg, ...)    _srs_log->warn(__PRETTY_FUNCTION__, _srs_context->get_id(), msg, ##__VA_ARGS__)
     #define srs_error(msg, ...)   _srs_log->error(__PRETTY_FUNCTION__, _srs_context->get_id(), msg, ##__VA_ARGS__)
 #endif
+*/
+    #define srs_verbose(msg, ...) _srs_log->verbose(__FUNCTION__, __LINE__, msg, ##__VA_ARGS__)
+    #define srs_info(msg, ...)    _srs_log->info(__FUNCTION__, __LINE__, msg, ##__VA_ARGS__)
+    #define srs_trace(msg, ...)   _srs_log->trace(__FUNCTION__, __LINE__, msg, ##__VA_ARGS__)
+    #define srs_warn(msg, ...)    _srs_log->warn(__FUNCTION__, __LINE__, msg, ##__VA_ARGS__)
+    #define srs_error(msg, ...)   _srs_log->error(__FUNCTION__, __LINE__, msg, ##__VA_ARGS__)
 
 // TODO: FIXME: add more verbose and info logs.
 #ifndef SRS_AUTO_VERBOSE
@@ -12458,24 +12465,63 @@ int ISrsLog::initialize()
     return ERROR_SUCCESS;
 }
 
-void ISrsLog::verbose(const char* /*tag*/, int /*context_id*/, const char* /*fmt*/, ...)
+#define LOG_MAX_SIZE 10240
+char log_data[LOG_MAX_SIZE];
+
+void ISrsLog::verbose(const char* tag, int context_id, const char* fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
+    // we reserved 1 bytes for the new line.
+    vsnprintf(log_data , LOG_MAX_SIZE , fmt, ap);
+    va_end(ap);
+    printf("\n%s:%d ",tag,context_id);
+    printf("  %s",log_data);
+
 }
 
-void ISrsLog::info(const char* /*tag*/, int /*context_id*/, const char* /*fmt*/, ...)
+void ISrsLog::info(const char* tag, int context_id, const char* fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
+    // we reserved 1 bytes for the new line.
+    vsnprintf(log_data , LOG_MAX_SIZE , fmt, ap);
+    va_end(ap);
+    printf("\n%s:%d ",tag,context_id);
+    printf("  %s",log_data);
 }
 
-void ISrsLog::trace(const char* /*tag*/, int /*context_id*/, const char* /*fmt*/, ...)
+void ISrsLog::trace(const char* tag, int context_id, const char* fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
+    // we reserved 1 bytes for the new line.
+    vsnprintf(log_data , LOG_MAX_SIZE , fmt, ap);
+    va_end(ap);
+    printf("\n%s:%d ",tag,context_id);
+    printf("  %s",log_data);
 }
 
-void ISrsLog::warn(const char* /*tag*/, int /*context_id*/, const char* /*fmt*/, ...)
+void ISrsLog::warn(const char* tag, int context_id, const char* fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
+    // we reserved 1 bytes for the new line.
+    vsnprintf(log_data , LOG_MAX_SIZE , fmt, ap);
+    va_end(ap);
+    printf("\n%s:%d ",tag,context_id);
+    printf("  %s",log_data);
 }
 
-void ISrsLog::error(const char* /*tag*/, int /*context_id*/, const char* /*fmt*/, ...)
+void ISrsLog::error(const char* tag, int context_id, const char* fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
+    // we reserved 1 bytes for the new line.
+    vsnprintf(log_data , LOG_MAX_SIZE , fmt, ap);
+    va_end(ap);
+    printf("\n%s:%d ",tag,context_id);
+    printf("  %s",log_data);
 }
 
 ISrsThreadContext::ISrsThreadContext()
@@ -22991,7 +23037,7 @@ int SrsProtocol::read_message_header(SrsChunkStream* chunk, char fmt)
     // fresh packet used to update the timestamp even fmt=3 for first packet.
     // fresh packet always means the chunk is the first one of message.
     bool is_first_chunk_of_msg = !chunk->msg;
-    
+   #if 0 
     // but, we can ensure that when a chunk stream is fresh, 
     // the fmt must be 0, a new stream.
     if (chunk->msg_count == 0 && fmt != RTMP_FMT_TYPE0) {
@@ -23013,6 +23059,7 @@ int SrsProtocol::read_message_header(SrsChunkStream* chunk, char fmt)
             return ret;
         }
     }
+   #endif
 
     // when exists cache msg, means got an partial message,
     // the fmt must not be type0 which means new message.
@@ -23949,6 +23996,7 @@ int SrsRtmpClient::connect_app2(
             pkt->args = req->args->copy()->to_object();
         }
         
+        
         if ((ret = protocol->send_and_free_packet(pkt, 0)) != ERROR_SUCCESS) {
             return ret;
         }
@@ -23962,6 +24010,7 @@ int SrsRtmpClient::connect_app2(
             return ret;
         }
     }
+    srs_trace("set widows acknowledgement size ok");
     
     // expect connect _result
     SrsCommonMessage* msg = NULL;
@@ -23970,6 +24019,7 @@ int SrsRtmpClient::connect_app2(
         srs_error("expect connect app response message failed. ret=%d", ret);
         return ret;
     }
+    srs_trace("expect connect app response message ok");
     SrsAutoFree(SrsCommonMessage, msg);
     SrsAutoFree(SrsConnectAppResPacket, pkt);
     
@@ -25797,6 +25847,8 @@ int SrsFMLEStartResPacket::decode(SrsStream* stream)
             "command_name=%s, ret=%d", command_name.c_str(), ret);
         return ret;
     }
+    srs_info("amf0 decode FMLE start response command_name ok. "
+            "command_name=%s, ret=%d", command_name.c_str(), ret);
     
     if ((ret = srs_amf0_read_number(stream, transaction_id)) != ERROR_SUCCESS) {
         srs_error("amf0 decode FMLE start response transaction_id failed. ret=%d", ret);
@@ -33488,6 +33540,7 @@ int srs_rtmp_connect_app(srs_rtmp_t rtmp)
         context->ip, context->vhost, context->app, context->port,
         context->param
     );
+    printf("tcUrl: %s\n",tcUrl.c_str());
     
     if ((ret = context->rtmp->connect_app(
         context->app, tcUrl, context->req, true)) != ERROR_SUCCESS) 
